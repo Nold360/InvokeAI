@@ -2,7 +2,7 @@
 
 ## Builder stage
 
-FROM library/ubuntu:23.04 AS builder
+FROM docker.io/library/ubuntu:23.04 AS builder
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
@@ -59,7 +59,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # #### Build the Web UI ------------------------------------
 
-FROM node:20-slim AS web-builder
+FROM docker.io/library/node:20-slim AS web-builder
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
@@ -72,7 +72,7 @@ RUN npx vite build
 
 #### Runtime stage ---------------------------------------
 
-FROM library/ubuntu:23.04 AS runtime
+FROM docker.io/library/ubuntu:23.04 AS runtime
 
 ARG DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
@@ -106,9 +106,9 @@ ENV CONTAINER_UID=${CONTAINER_UID:-1000}
 ENV CONTAINER_GID=${CONTAINER_GID:-1000}
 
 # --link requires buldkit w/ dockerfile syntax 1.4
-COPY --link --from=builder ${INVOKEAI_SRC} ${INVOKEAI_SRC}
-COPY --link --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
-COPY --link --from=web-builder /build/dist ${INVOKEAI_SRC}/invokeai/frontend/web/dist
+COPY -from=builder ${INVOKEAI_SRC} ${INVOKEAI_SRC}
+COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+COPY --from=web-builder /build/dist ${INVOKEAI_SRC}/invokeai/frontend/web/dist
 
 # Link amdgpu.ids for ROCm builds
 # contributed by https://github.com/Rubonnek
